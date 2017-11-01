@@ -8,6 +8,7 @@ import (
 	"os"
 
 	"github.com/grailbio/go-dicom/dicomio"
+	"github.com/grailbio/go-dicom/dicomtag"
 )
 
 // GoDICOMImplementationClassUIDPrefix defines the UID prefix for
@@ -90,7 +91,7 @@ func ReadDataSet(in io.Reader, bytes int64, options ReadOptions) (*DataSet, erro
 			// element is a pixel data and was dropped by options
 			break
 		}
-		if elem.Tag == TagSpecificCharacterSet {
+		if elem.Tag == dicomtag.SpecificCharacterSet {
 			// Set the []byte -> string decoder for the rest of the
 			// file.  It's sad that SpecificCharacterSet isn't part
 			// of metadata, but is part of regular attrs, so we need
@@ -118,7 +119,7 @@ func ReadDataSet(in io.Reader, bytes int64, options ReadOptions) (*DataSet, erro
 }
 
 func getTransferSyntax(ds *DataSet) (bo binary.ByteOrder, implicit dicomio.IsImplicitVR, err error) {
-	elem, err := ds.FindElementByTag(TagTransferSyntaxUID)
+	elem, err := ds.FindElementByTag(dicomtag.TransferSyntaxUID)
 	if err != nil {
 		return nil, dicomio.UnknownVR, err
 	}
@@ -137,6 +138,6 @@ func (f *DataSet) FindElementByName(name string) (*Element, error) {
 
 // FindElementByTag finds an element from the dataset given its tag, such as
 // Tag{0x0010, 0x0010}.
-func (f *DataSet) FindElementByTag(tag Tag) (*Element, error) {
+func (f *DataSet) FindElementByTag(tag dicomtag.Tag) (*Element, error) {
 	return FindElementByTag(f.Elements, tag)
 }
