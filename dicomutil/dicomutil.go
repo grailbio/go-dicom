@@ -34,7 +34,7 @@ func main() {
 		n := 0
 		for _, elem := range data.Elements {
 			if elem.Tag == dicomtag.PixelData {
-				data := elem.Value[0].([]byte)
+				data := elem.Value[0].(dicom.PixelDataInfo).Frames[0]
 				path := fmt.Sprintf("image.%d.jpg", n) // TODO: figure out the image format
 				n++
 				ioutil.WriteFile(path, data, 0644)
