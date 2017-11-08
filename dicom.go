@@ -40,10 +40,9 @@ func doassert(cond bool, values ...interface{}) {
 
 // ReadOptions defines how DataSets and Elements are parsed.
 type ReadOptions struct {
-	// If true, skip the PixelData element (bulk images) in ReadDataSet.
-	DropPixelData 	bool
-	ReturnTags 		[]dicomtag.Tag
-	StopAtTag 		*dicomtag.Tag
+	DropPixelData 	bool				// If true, skip the PixelData element (bulk images) in ReadDataSet.
+	ReturnTags 		[]dicomtag.Tag 		// A list of tags, when not nil, will whitelist which tags to return
+	StopAtTag 		*dicomtag.Tag 		// A tag at which when read (or a tag with a greater value than it is read), the program will stop parsing the dicom file
 }
 
 // ReadDataSetInBytes is a shorthand for ReadDataSet(bytes.NewBuffer(data), len(data)).
