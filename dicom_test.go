@@ -145,7 +145,7 @@ func TestReadOptions(t *testing.T) {
  	}
 
  	// Test Stop at Tag
- 	data = mustReadFile("examples/IM-0001-0001.dcm", dicom.ReadOptions{DropPixelData: true, StopAtTag: dicomtag.StudyInstanceUID}) // Study Instance UID Element tag is Tag{0x0020, 0x000D}
+ 	data = mustReadFile("examples/IM-0001-0001.dcm", dicom.ReadOptions{DropPixelData: true, StopAtTag: &dicomtag.StudyInstanceUID}) // Study Instance UID Element tag is Tag{0x0020, 0x000D}
  	_, err = data.FindElementByTag(dicomtag.PatientName) // Patient Name Element tag is Tag{0x0010, 0x0010}
  	if err != nil {
 		t.Error(err)

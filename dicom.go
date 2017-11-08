@@ -114,7 +114,7 @@ func ReadDataSet(in io.Reader, bytes int64, options ReadOptions) (*DataSet, erro
 				}
 			}
 		}
-		if options.ReturnTags != nil && tagInList(elem.Tag, options.ReturnTags) {
+		if options.ReturnTags == nil || (options.ReturnTags != nil && tagInList(elem.Tag, options.ReturnTags)) {
 			file.Elements = append(file.Elements, elem)
 		}
 	}
