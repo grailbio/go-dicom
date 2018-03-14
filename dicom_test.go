@@ -1,6 +1,7 @@
 package dicom_test
 
 import (
+	"log"
 	"os"
 	"testing"
 
@@ -9,13 +10,12 @@ import (
 	"github.com/grailbio/go-dicom/dicomuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"v.io/x/lib/vlog"
 )
 
 func mustReadFile(path string, options dicom.ReadOptions) *dicom.DataSet {
 	data, err := dicom.ReadDataSetFromFile(path, options)
 	if err != nil {
-		vlog.Fatalf("%s: failed to read: %v", path, err)
+		log.Fatalf("%s: failed to read: %v", path, err)
 	}
 	return data
 }
@@ -26,7 +26,7 @@ func TestAllFiles(t *testing.T) {
 	names, err := dir.Readdirnames(0)
 	require.NoError(t, err)
 	for _, name := range names {
-		vlog.Infof("Reading %s", name)
+		log.Printf("Reading %s", name)
 		_ = mustReadFile("examples/"+name, dicom.ReadOptions{})
 	}
 }
@@ -40,7 +40,7 @@ func testWriteFile(t *testing.T, dcmPath, transferSyntaxUID string) {
 	for i := range data.Elements {
 		if data.Elements[i].Tag == dicomtag.TransferSyntaxUID {
 			newElem := dicom.MustNewElement(dicomtag.TransferSyntaxUID, transferSyntaxUID)
-			vlog.Infof("Setting transfer syntax UID from %v to %v",
+			log.Printf("Setting transfer syntax UID from %v to %v",
 				data.Elements[i].MustGetString(), newElem.MustGetString())
 			data.Elements[i] = newElem
 		}

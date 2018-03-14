@@ -5,11 +5,11 @@ import (
 	"encoding/binary"
 	"fmt"
 	"io"
+	"log"
 	"os"
 
 	"github.com/grailbio/go-dicom/dicomio"
 	"github.com/grailbio/go-dicom/dicomtag"
-	"v.io/x/lib/vlog"
 )
 
 // GoDICOMImplementationClassUIDPrefix defines the UID prefix for
@@ -107,7 +107,7 @@ func ReadDataSet(in io.Reader, bytes int64, options ReadOptions) (*DataSet, erro
 		startLen := buffer.Len()
 		elem := ReadElement(buffer, options)
 		if buffer.Len() >= startLen { // Avoid silent infinite looping.
-			vlog.Fatalf("ReadElement failed to consume data: %d %d: %v", startLen, buffer.Len(), buffer.Error())
+			log.Fatalf("ReadElement failed to consume data: %d %d: %v", startLen, buffer.Len(), buffer.Error())
 		}
 		if elem == endOfDataElement {
 			// element is a pixel data and was dropped by options

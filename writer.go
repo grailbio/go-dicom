@@ -4,11 +4,11 @@ import (
 	"encoding/binary"
 	"fmt"
 	"io"
+	"log"
 	"os"
 
 	"github.com/grailbio/go-dicom/dicomio"
 	"github.com/grailbio/go-dicom/dicomtag"
-	"v.io/x/lib/vlog"
 )
 
 // WriteFileHeader produces a DICOM file header. metaElems[] is be a list of
@@ -131,7 +131,7 @@ func WriteElement(e *dicomio.Encoder, elem *Element) {
 					dicomtag.DebugString(elem.Tag), vr, entry.VR)
 				return
 			}
-			vlog.VI(1).Infof("VR value mismatch for tag %s. Element.VR=%v, but DICOM standard defines VR to be %v (continuing)",
+			log.Printf("VR value mismatch for tag %s. Element.VR=%v, but DICOM standard defines VR to be %v (continuing)",
 				dicomtag.DebugString(elem.Tag), vr, entry.VR)
 		}
 	}

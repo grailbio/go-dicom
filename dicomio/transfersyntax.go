@@ -3,9 +3,9 @@ package dicomio
 import (
 	"encoding/binary"
 	"fmt"
+	"log"
 
 	"github.com/grailbio/go-dicom/dicomuid"
-	"v.io/x/lib/vlog"
 )
 
 // Standard list of transfer syntaxes.
@@ -65,7 +65,7 @@ func ParseTransferSyntaxUID(uid string) (bo binary.ByteOrder, implicit IsImplici
 	case dicomuid.ExplicitVRBigEndian:
 		return binary.BigEndian, ExplicitVR, nil
 	default:
-		vlog.Fatal(canonical, uid)
+		log.Fatal(canonical, uid)
 		return binary.BigEndian, ExplicitVR, nil
 	}
 }

@@ -45,7 +45,7 @@ func TestBasic(t *testing.T) {
 	}
 	// Read past the buffer. It should flag an error
 	if _ = d.ReadByte(); d.Error() == nil {
-		t.Errorf("Error %v %v", d.Error())
+		t.Errorf("Error %v", d.Error())
 	}
 }
 

@@ -7,8 +7,7 @@ package dicomuid
 
 import (
 	"fmt"
-
-	"v.io/x/lib/vlog"
+	"log"
 )
 
 type UIDType string
@@ -479,7 +478,7 @@ func Lookup(uid string) (UIDInfo, error) {
 func MustLookup(uid string) UIDInfo {
 	e, err := Lookup(uid)
 	if err != nil {
-		vlog.Fatal(err)
+		log.Fatal(err)
 	}
 	return e
 }
