@@ -5,7 +5,6 @@ import (
 	"encoding/binary"
 	"fmt"
 	"io"
-	"log"
 	"os"
 
 	"github.com/grailbio/go-dicom/dicomio"
@@ -107,7 +106,7 @@ func ReadDataSet(in io.Reader, bytes int64, options ReadOptions) (*DataSet, erro
 		startLen := buffer.Len()
 		elem := ReadElement(buffer, options)
 		if buffer.Len() >= startLen { // Avoid silent infinite looping.
-			log.Panicf("ReadElement failed to consume data: %d %d: %v", startLen, buffer.Len(), buffer.Error())
+			panic(fmt.Sprintf("ReadElement failed to consume data: %d %d: %v", startLen, buffer.Len(), buffer.Error()))
 		}
 		if elem == endOfDataElement {
 			// element is a pixel data and was dropped by options
