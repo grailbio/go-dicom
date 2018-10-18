@@ -7,7 +7,7 @@ import (
 	"github.com/grailbio/go-dicom/dicomuid"
 )
 
-// Standard list of transfer syntaxes.
+// StandardTransferSyntaxes is the list of standard transfer syntaxes.
 var StandardTransferSyntaxes = []string{
 	dicomuid.ImplicitVRLittleEndian,
 	dicomuid.ExplicitVRLittleEndian,
@@ -65,6 +65,5 @@ func ParseTransferSyntaxUID(uid string) (bo binary.ByteOrder, implicit IsImplici
 		return binary.BigEndian, ExplicitVR, nil
 	default:
 		panic(fmt.Sprintf("Invalid transfer syntax: %v,  %v", canonical, uid))
-		return binary.BigEndian, ExplicitVR, nil
 	}
 }

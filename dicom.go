@@ -58,7 +58,7 @@ type ReadOptions struct {
 // error. In such case, the dataset will contain parts of the file that are
 // parsable, and error will show the first error found by the parser.
 func ReadDataSetInBytes(data []byte, options ReadOptions) (*DataSet, error) {
-	return ReadDataSet(bytes.NewBuffer(data), int64(len(data)), options)
+	return ReadDataSet(bytes.NewReader(data), options)
 }
 
 // ReadDataSetFromFile parses file cotents into dicom.DataSet. It is a thin
@@ -72,21 +72,20 @@ func ReadDataSetFromFile(path string, options ReadOptions) (*DataSet, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer file.Close()
-	st, err := file.Stat()
-	if err != nil {
-		return nil, err
+	ds, err := ReadDataSet(file, options)
+	if e := file.Close(); e != nil && err == nil {
+		err = e
 	}
-	return ReadDataSet(file, st.Size(), options)
+	return ds, err
 }
 
-// ReadDataSet reads a DICOM file from "io", up to "bytes".
+// ReadDataSet reads a DICOM file from "io".
 //
 // On parse error, this function may return a non-nil dataset and a non-nil
 // error. In such case, the dataset will contain parts of the file that are
 // parsable, and error will show the first error found by the parser.
-func ReadDataSet(in io.Reader, bytes int64, options ReadOptions) (*DataSet, error) {
-	buffer := dicomio.NewDecoder(in, bytes, binary.LittleEndian, dicomio.ExplicitVR)
+func ReadDataSet(in io.Reader, options ReadOptions) (*DataSet, error) {
+	buffer := dicomio.NewDecoder(in, binary.LittleEndian, dicomio.ExplicitVR)
 	metaElems := ParseFileHeader(buffer)
 	if buffer.Error() != nil {
 		return nil, buffer.Error()
@@ -102,11 +101,11 @@ func ReadDataSet(in io.Reader, bytes int64, options ReadOptions) (*DataSet, erro
 	defer buffer.PopTransferSyntax()
 
 	// Read the list of elements.
-	for buffer.Len() > 0 {
-		startLen := buffer.Len()
+	for !buffer.EOF() {
+		startLen := buffer.BytesRead()
 		elem := ReadElement(buffer, options)
-		if buffer.Len() >= startLen { // Avoid silent infinite looping.
-			panic(fmt.Sprintf("ReadElement failed to consume data: %d %d: %v", startLen, buffer.Len(), buffer.Error()))
+		if buffer.BytesRead() <= startLen { // Avoid silent infinite looping.
+			panic(fmt.Sprintf("ReadElement failed to consume data: position %d: %v", startLen, buffer.Error()))
 		}
 		if elem == endOfDataElement {
 			// element is a pixel data and was dropped by options

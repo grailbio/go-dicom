@@ -13,12 +13,7 @@ import (
 	"github.com/grailbio/go-dicom/dicomtag"
 )
 
-// Constants
-const (
-	itemSeqGroup     = 0xFFFE
-	unknownGroupName = "Unknown Group"
-	privateGroupName = "Private Data"
-)
+const itemSeqGroup = 0xFFFE
 
 // Element represents a single DICOM element. Use NewElement() to create a
 // element denovo. Avoid creating a struct manually, because setting the VR
@@ -377,7 +372,7 @@ func readBasicOffsetTable(d *dicomio.Decoder) []uint32 {
 	// byte size of an image that follows.
 	subdecoder := dicomio.NewBytesDecoder(data, byteOrder, dicomio.ImplicitVR)
 	var offsets []uint32
-	for subdecoder.Len() > 0 && subdecoder.Error() == nil {
+	for !subdecoder.EOF() {
 		offsets = append(offsets, subdecoder.ReadUInt32())
 	}
 	return offsets
@@ -410,7 +405,7 @@ func ParseFileHeader(d *dicomio.Decoder) []*Element {
 		d.SetErrorf("Failed to read uint32 in MetaElementGroupLength: %v", err)
 		return nil
 	}
-	if d.Len() <= 0 {
+	if d.EOF() {
 		d.SetErrorf("No data element found")
 		return nil
 	}
@@ -419,13 +414,13 @@ func ParseFileHeader(d *dicomio.Decoder) []*Element {
 	// Read meta tags
 	d.PushLimit(int64(metaLength))
 	defer d.PopLimit()
-	for d.Len() > 0 {
+	for !d.EOF() {
 		elem := ReadElement(d, ReadOptions{})
 		if d.Error() != nil {
 			break
 		}
 		metaElems = append(metaElems, elem)
-		dicomlog.Vprintf(2, "dicom.ParseFileHeader: Meta elem: %v, len %v", elem.String(), d.Len())
+		dicomlog.Vprintf(2, "dicom.ParseFileHeader: Meta elem: %v, pos %v", elem.String(), d.BytesRead())
 	}
 	return metaElems
 }
@@ -506,7 +501,7 @@ func ReadElement(d *dicomio.Decoder, options ReadOptions) *Element {
 			if len(image.Offsets) > 1 {
 				dicomlog.Vprintf(1, "dicom.ReadElement: Multiple images not supported yet. Combining them into a byte sequence: %v", image.Offsets)
 			}
-			for d.Len() > 0 {
+			for !d.EOF() {
 				chunk, endOfItems := readRawItem(d)
 				if d.Error() != nil {
 					break
@@ -553,7 +548,7 @@ func ReadElement(d *dicomio.Decoder, options ReadOptions) *Element {
 			//  Sequence := ItemSet*VL
 			// See the above comment for the definition of ItemSet.
 			d.PushLimit(int64(vl))
-			for d.Len() > 0 {
+			for !d.EOF() {
 				// Makes sure to return all sub elements even if the tag is not in the return tags list of options or is greater than the Stop At Tag
 				item := ReadElement(d, ReadOptions{})
 				if d.Error() != nil {
@@ -582,9 +577,9 @@ func ReadElement(d *dicomio.Decoder, options ReadOptions) *Element {
 				data = append(data, subelem)
 			}
 		} else {
-			// Sequence of arbitary elements, for the  total of "vl" bytes.
+			// Sequence of arbitrary elements, for the  total of "vl" bytes.
 			d.PushLimit(int64(vl))
-			for d.Len() > 0 {
+			for !d.EOF() {
 				// Makes sure to return all sub elements even if the tag is not in the return tags list of options or is greater than the Stop At Tag
 				subelem := ReadElement(d, ReadOptions{})
 				if d.Error() != nil {
@@ -607,7 +602,7 @@ func ReadElement(d *dicomio.Decoder, options ReadOptions) *Element {
 			data = []interface{}{date}
 		} else if vr == "AT" {
 			// (2byte group, 2byte elem)
-			for d.Len() > 0 && d.Error() == nil {
+			for !d.EOF() {
 				tag := dicomtag.Tag{d.ReadUInt16(), d.ReadUInt16()}
 				data = append(data, tag)
 			}
@@ -634,27 +629,27 @@ func ReadElement(d *dicomio.Decoder, options ReadOptions) *Element {
 			str := d.ReadString(int(vl))
 			data = append(data, str)
 		} else if vr == "UL" {
-			for d.Len() > 0 && d.Error() == nil {
+			for !d.EOF() {
 				data = append(data, d.ReadUInt32())
 			}
 		} else if vr == "SL" {
-			for d.Len() > 0 && d.Error() == nil {
+			for !d.EOF() {
 				data = append(data, d.ReadInt32())
 			}
 		} else if vr == "US" {
-			for d.Len() > 0 && d.Error() == nil {
+			for !d.EOF() {
 				data = append(data, d.ReadUInt16())
 			}
 		} else if vr == "SS" {
-			for d.Len() > 0 && d.Error() == nil {
+			for !d.EOF() {
 				data = append(data, d.ReadInt16())
 			}
 		} else if vr == "FL" {
-			for d.Len() > 0 && d.Error() == nil {
+			for !d.EOF() {
 				data = append(data, d.ReadFloat32())
 			}
 		} else if vr == "FD" {
-			for d.Len() > 0 && d.Error() == nil {
+			for !d.EOF() {
 				data = append(data, d.ReadFloat64())
 			}
 		} else {
@@ -698,16 +693,14 @@ func readImplicit(buffer *dicomio.Decoder, tag dicomtag.Tag) (string, uint32) {
 	return vr, vl
 }
 
-// The VR is represented by the next two consecutive bytes
-// The VL depends on the VR value
+// The VR is represented by the next two consecutive bytes The VL depends on the
+// VR value. PS 3.5, 7.1.2.
 func readExplicit(buffer *dicomio.Decoder, tag dicomtag.Tag) (string, uint32) {
 	vr := buffer.ReadString(2)
 	var vl uint32
-	if vr == "US" {
-		vl = 2
-	}
-	// long value representations
 	switch vr {
+	// TODO(saito) The case list below differs from Table 7.1.1 in PS 3.5
+	// (http://dicom.nema.org/Dicom/2013/output/chtml/part05/chapter_7.html#table_7.1-1).
 	case "NA", "OB", "OD", "OF", "OL", "OW", "SQ", "UN", "UC", "UR", "UT":
 		buffer.Skip(2) // ignore two bytes for "future use" (0000H)
 		vl = buffer.ReadUInt32()

@@ -3,10 +3,12 @@
 package dicomio
 
 import (
+	"bufio"
 	"bytes"
 	"encoding/binary"
 	"fmt"
 	"io"
+	"math"
 
 	"golang.org/x/text/encoding"
 )
@@ -76,7 +78,7 @@ func NewEncoderWithTransferSyntax(out io.Writer, transferSyntaxUID string) *Enco
 	return e
 }
 
-// Create a new encoder that writes to "out".
+// NewEncoder creates a new encoder that writes to "out".
 func NewEncoder(out io.Writer, bo binary.ByteOrder, implicit IsImplicitVR) *Encoder {
 	return &Encoder{
 		err:      nil,
@@ -142,36 +144,52 @@ func (e *Encoder) Bytes() []byte {
 }
 
 func (e *Encoder) WriteByte(v byte) {
-	binary.Write(e.out, e.bo, &v)
+	if err := binary.Write(e.out, e.bo, &v); err != nil {
+		e.SetError(err)
+	}
 }
 
 func (e *Encoder) WriteUInt16(v uint16) {
-	binary.Write(e.out, e.bo, &v)
+	if err := binary.Write(e.out, e.bo, &v); err != nil {
+		e.SetError(err)
+	}
 }
 
 func (e *Encoder) WriteUInt32(v uint32) {
-	binary.Write(e.out, e.bo, &v)
+	if err := binary.Write(e.out, e.bo, &v); err != nil {
+		e.SetError(err)
+	}
 }
 
 func (e *Encoder) WriteInt16(v int16) {
-	binary.Write(e.out, e.bo, &v)
+	if err := binary.Write(e.out, e.bo, &v); err != nil {
+		e.SetError(err)
+	}
 }
 
 func (e *Encoder) WriteInt32(v int32) {
-	binary.Write(e.out, e.bo, &v)
+	if err := binary.Write(e.out, e.bo, &v); err != nil {
+		e.SetError(err)
+	}
 }
 
 func (e *Encoder) WriteFloat32(v float32) {
-	binary.Write(e.out, e.bo, &v)
+	if err := binary.Write(e.out, e.bo, &v); err != nil {
+		e.SetError(err)
+	}
 }
 
 func (e *Encoder) WriteFloat64(v float64) {
-	binary.Write(e.out, e.bo, &v)
+	if err := binary.Write(e.out, e.bo, &v); err != nil {
+		e.SetError(err)
+	}
 }
 
 // WriteString writes the string, withoutout any length prefix or padding.
 func (e *Encoder) WriteString(v string) {
-	e.out.Write([]byte(v))
+	if _, err := e.out.Write([]byte(v)); err != nil {
+		e.SetError(err)
+	}
 }
 
 // WriteZeros encodes an array of zero bytes.
@@ -207,7 +225,7 @@ const (
 
 // Decoder is a helper class for decoder low-level DICOM data types.
 type Decoder struct {
-	in  io.Reader
+	in  *bufio.Reader
 	err error
 	bo  binary.ByteOrder
 	// "implicit" isn't used by Decoder internally. It's there for the user
@@ -234,23 +252,22 @@ type Decoder struct {
 // assumes that "limit" accurately bounds the end of the data.
 func NewDecoder(
 	in io.Reader,
-	limit int64,
 	bo binary.ByteOrder,
 	implicit IsImplicitVR) *Decoder {
 	return &Decoder{
-		in:       in,
+		in:       bufio.NewReader(in),
 		err:      nil,
 		bo:       bo,
 		implicit: implicit,
 		pos:      0,
-		limit:    limit,
+		limit:    math.MaxInt64,
 	}
 }
 
 // NewBytesDecoder creates a decoder that reads from a sequence of bytes. See
 // NewDecoder() for explanation of other parameters.
 func NewBytesDecoder(data []byte, bo binary.ByteOrder, implicit IsImplicitVR) *Decoder {
-	return NewDecoder(bytes.NewBuffer(data), int64(len(data)), bo, implicit)
+	return NewDecoder(bytes.NewReader(data), bo, implicit)
 }
 
 // NewBytesDecoderWithTransferSyntax is similar to NewBytesDecoder, but it takes
@@ -361,15 +378,15 @@ func (d *Decoder) Finish() error {
 	if d.err != nil {
 		return d.err
 	}
-	if d.Len() != 0 {
-		return fmt.Errorf("Decoder found junk (%d bytes remaining)", d.Len())
+	if !d.EOF() {
+		return fmt.Errorf("Decoder found junk")
 	}
 	return nil
 }
 
 // Read implements the io.Reader interface.
 func (d *Decoder) Read(p []byte) (int, error) {
-	desired := d.Len()
+	desired := d.len()
 	if desired == 0 {
 		if len(p) == 0 {
 			return 0, nil
@@ -378,7 +395,6 @@ func (d *Decoder) Read(p []byte) (int, error) {
 	}
 	if desired < int64(len(p)) {
 		p = p[:desired]
-		desired = int64(len(p))
 	}
 	n, err := d.in.Read(p)
 	if n >= 0 {
@@ -387,8 +403,23 @@ func (d *Decoder) Read(p []byte) (int, error) {
 	return n, err
 }
 
+// EOF checks if there is any more data to read.
+func (d *Decoder) EOF() bool {
+	if d.err != nil {
+		return true
+	}
+	if d.limit-d.pos <= 0 {
+		return true
+	}
+	data, _ := d.in.Peek(1)
+	return len(data) == 0
+}
+
+// BytesRead returns the cumulative # of bytes read so far.
+func (d *Decoder) BytesRead() int64 { return d.pos }
+
 // Len returns the number of bytes yet consumed.
-func (d *Decoder) Len() int64 {
+func (d *Decoder) len() int64 {
 	return d.limit - d.pos
 }
 
@@ -489,8 +520,8 @@ func (d *Decoder) ReadString(length int) string {
 }
 
 func (d *Decoder) ReadBytes(length int) []byte {
-	if d.Len() < int64(length) {
-		d.SetError(fmt.Errorf("ReadBytes: requested %d, available %d", length, d.Len()))
+	if d.len() < int64(length) {
+		d.SetError(fmt.Errorf("ReadBytes: requested %d, available %d", length, d.len()))
 		return nil
 	}
 	v := make([]byte, length)
@@ -510,11 +541,11 @@ func (d *Decoder) ReadBytes(length int) []byte {
 	return v
 }
 
-// Skips advances the read pointer by "length" bytes.
+// Skip advances the read pointer by "length" bytes.
 func (d *Decoder) Skip(length int) {
-	if d.Len() < int64(length) {
+	if d.len() < int64(length) {
 		d.SetError(fmt.Errorf("Skip: requested %d, available %d",
-			length, d.Len()))
+			length, d.len()))
 		return
 	}
 	junkSize := 1 << 16
