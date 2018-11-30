@@ -317,6 +317,23 @@ func WriteElement(e *dicomio.Encoder, elem *Element) {
 					sube.WriteByte(0)
 				}
 			}
+		case "UI":
+			s := ""
+			for i, value := range elem.Value {
+				substr, ok := value.(string)
+				if !ok {
+					e.SetErrorf("%v: Non-string value found", dicomtag.DebugString(elem.Tag))
+					continue
+				}
+				if i > 0 {
+					s += "\\"
+				}
+				s += substr
+			}
+			sube.WriteString(s)
+			if len(s)%2 == 1 {
+				sube.WriteByte(0)
+			}
 		case "AT", "NA":
 			fallthrough
 		default:
@@ -334,7 +351,7 @@ func WriteElement(e *dicomio.Encoder, elem *Element) {
 			}
 			sube.WriteString(s)
 			if len(s)%2 == 1 {
-				sube.WriteByte(0)
+				sube.WriteByte(' ')
 			}
 		}
 		if sube.Error() != nil {
