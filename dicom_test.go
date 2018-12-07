@@ -1,6 +1,8 @@
 package dicom_test
 
 import (
+	"bytes"
+	"fmt"
 	"log"
 	"os"
 	"testing"
@@ -130,6 +132,83 @@ func TestReadOptions(t *testing.T) {
 	if err == nil {
 		t.Errorf("PatientName should not be present")
 	}
+}
+
+func Example_read() {
+	ds, err := dicom.ReadDataSetFromFile("examples/IM-0001-0003.dcm", dicom.ReadOptions{})
+	if err != nil {
+		panic(err)
+	}
+	patientID, err := ds.FindElementByTag(dicomtag.PatientID)
+	if err != nil {
+		panic(err)
+	}
+	patientBirthDate, err := ds.FindElementByTag(dicomtag.PatientBirthDate)
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println("ID: " + patientID.String())
+	fmt.Println("BirthDate: " + patientBirthDate.String())
+	// Output:
+	// ID:  (0010,0020)[PatientID] LO  [7DkT2Tp]
+	// BirthDate:  (0010,0030)[PatientBirthDate] DA  [19530828]
+}
+
+func Example_updateExistingFile() {
+	ds, err := dicom.ReadDataSetFromFile("examples/IM-0001-0003.dcm", dicom.ReadOptions{})
+	if err != nil {
+		panic(err)
+	}
+	patientID, err := ds.FindElementByTag(dicomtag.PatientID)
+	patientID.Value = []interface{}{"John Doe"}
+
+	buf := bytes.Buffer{}
+	if err := dicom.WriteDataSet(&buf, ds); err != nil {
+		panic(err)
+	}
+
+	ds2, err := dicom.ReadDataSet(&buf, dicom.ReadOptions{})
+	if err != nil {
+		panic(err)
+	}
+	patientID, err = ds2.FindElementByTag(dicomtag.PatientID)
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println("ID: " + patientID.String())
+	// Output:
+	// ID:  (0010,0020)[PatientID] LO  [John Doe]
+}
+
+func Example_write() {
+	elems := []*dicom.Element{
+		dicom.MustNewElement(dicomtag.TransferSyntaxUID, dicomuid.ExplicitVRLittleEndian),
+		dicom.MustNewElement(dicomtag.MediaStorageSOPClassUID, "1.2.840.10008.5.1.4.1.1.1.2"),
+		dicom.MustNewElement(dicomtag.MediaStorageSOPInstanceUID, "1.2.840.113857.113857.1528.141452.1.5"),
+		dicom.MustNewElement(dicomtag.PatientName, "Alice Doe"),
+	}
+	ds := dicom.DataSet{Elements: elems}
+	err := dicom.WriteDataSetToFile("/tmp/test.dcm", &ds)
+	if err != nil {
+		panic(err)
+	}
+
+	ds2, err := dicom.ReadDataSetFromFile("/tmp/test.dcm", dicom.ReadOptions{})
+	if err != nil {
+		panic(err)
+	}
+	for _, elem := range ds2.Elements {
+		fmt.Println(elem.String())
+	}
+	// Output:
+	// (0002,0000)[FileMetaInformationGroupLength] UL  [184]
+	//  (0002,0001)[FileMetaInformationVersion] OB  [[48 32 49 0]]
+	//  (0002,0002)[MediaStorageSOPClassUID] UI  [1.2.840.10008.5.1.4.1.1.1.2]
+	//  (0002,0003)[MediaStorageSOPInstanceUID] UI  [1.2.840.113857.113857.1528.141452.1.5]
+	//  (0002,0010)[TransferSyntaxUID] UI  [1.2.840.10008.1.2.1]
+	//  (0002,0012)[ImplementationClassUID] UI  [1.2.826.0.1.3680043.9.7133.1.1]
+	//  (0002,0013)[ImplementationVersionName] SH  [GODICOM_1_1]
+	//  (0010,0010)[PatientName] PN  [Alice Doe]
 }
 
 func BenchmarkParseSingle(b *testing.B) {
