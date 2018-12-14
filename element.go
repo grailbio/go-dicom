@@ -29,16 +29,18 @@ type Element struct {
 	// Else if Tag==TagItem, each Value[i] is a *Element.
 	//    a value's Tag can be any (including TagItem, which represents a nested Item)
 	// Else if VR=="SQ", Value[i] is a *Element, with Tag=TagItem.
-	// Else if VR=="OW", "OB", then len(Value)==1, and Value[0] is []byte.
 	// Else if VR=="LT", or "UT", then len(Value)==1, and Value[0] is string
 	// Else if VR=="DA", then len(Value)==1, and Value[0] is string. Use ParseDate() to parse the date string.
-	// Else if VR=="US", Value[] is a list of uint16s
-	// Else if VR=="UL", Value[] is a list of uint32s
-	// Else if VR=="SS", Value[] is a list of int16s
-	// Else if VR=="SL", Value[] is a list of int32s
-	// Else if VR=="FL", Value[] is a list of float32s
-	// Else if VR=="FD", Value[] is a list of float64s
-	// Else if VR=="AT", Value[] is a list of Tag's.
+	// Else if VR=="US", Value[] is a list of uint16s (len(Value) matches VM of the Tag; PS 3.5 6.4)
+	// Else if VR=="UL", Value[] is a list of uint32s (len(Value) matches VM of the Tag; PS 3.5 6.4)
+	// Else if VR=="SS", Value[] is a list of int16s (len(Value) matches VM of the Tag; PS 3.5 6.4)
+	// Else if VR=="SL", Value[] is a list of int32s (len(Value) matches VM of the Tag; PS 3.5 6.4)
+	// Else if VR=="FL", Value[] is a list of float32s (len(Value) matches VM of the Tag; PS 3.5 6.4)
+	// Else if VR=="FD", Value[] is a list of float64s (len(Value) matches VM of the Tag; PS 3.5 6.4)
+	// Else if VR=="AT", Value[] is a list of Tag's. (len(Value) matches VM of the Tag; PS 3.5 6.4)
+	// Else if VR=="OF", Value[] is a list of float32s
+	// Else if VR=="OD", Value[] is a list of float64s
+	// Else if VR=="OW" or "OB", len(Value)==1, and Value[0] is []byte.
 	// Else, Value[] is a list of strings.
 	//
 	// Note: Use GetVRKind() to map VR string to the go representation of
@@ -644,11 +646,11 @@ func ReadElement(d *dicomio.Decoder, options ReadOptions) *Element {
 			for !d.EOF() {
 				data = append(data, d.ReadInt16())
 			}
-		} else if vr == "FL" {
+		} else if vr == "FL" || vr == "OF" {
 			for !d.EOF() {
 				data = append(data, d.ReadFloat32())
 			}
-		} else if vr == "FD" {
+		} else if vr == "FD" || vr == "OD" {
 			for !d.EOF() {
 				data = append(data, d.ReadFloat64())
 			}

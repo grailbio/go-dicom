@@ -5,9 +5,10 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"path/filepath"
 	"testing"
 
-	"github.com/grailbio/go-dicom"
+	dicom "github.com/grailbio/go-dicom"
 	"github.com/grailbio/go-dicom/dicomtag"
 	"github.com/grailbio/go-dicom/dicomuid"
 	"github.com/stretchr/testify/assert"
@@ -33,9 +34,21 @@ func TestAllFiles(t *testing.T) {
 	}
 }
 
+func replacePrivateTagVR(elem *dicom.Element) {
+	if dicomtag.IsPrivate(elem.Tag.Group) {
+		elem.VR = "UN"
+	}
+	for _, v := range elem.Value {
+		if elem, ok := v.(*dicom.Element); ok {
+			replacePrivateTagVR(elem)
+		}
+	}
+}
+
 func testWriteFile(t *testing.T, dcmPath, transferSyntaxUID string) {
 	data := mustReadFile(dcmPath, dicom.ReadOptions{})
-	dstPath := "/tmp/test.dcm"
+	dstPath := "/tmp/writetest-" + transferSyntaxUID + "-" + filepath.Base(dcmPath)
+	t.Logf("Write test %s (transfersyntax %s) -> %s", dcmPath, transferSyntaxUID, dstPath)
 	out, err := os.Create(dstPath)
 	require.NoError(t, err)
 
@@ -64,6 +77,13 @@ func testWriteFile(t *testing.T, dcmPath, transferSyntaxUID string) {
 			}
 		}
 	}
+
+	if transferSyntaxUID == dicomuid.ImplicitVRLittleEndian {
+		// For implicit encoding, VR of private tags will be replaced with UN.
+		for _, elem := range data.Elements {
+			replacePrivateTagVR(elem)
+		}
+	}
 	for _, elem := range data.Elements {
 		elem2, err := data2.FindElementByTag(elem.Tag)
 		if err != nil {
@@ -79,10 +99,15 @@ func testWriteFile(t *testing.T, dcmPath, transferSyntaxUID string) {
 }
 
 func TestWriteFile(t *testing.T) {
-	// path := "examples/IM-0001-0001.dcm"
-	//testWriteFile(t, "examples/CT-MONO2-16-ort.dcm", dicomuid.ExplicitVRBigEndian)
-	//testWriteFile(t, "examples/CT-MONO2-16-ort.dcm", dicomuid.ImplicitVRLittleEndian)
-	testWriteFile(t, "examples/CT-MONO2-16-ort.dcm", dicomuid.ExplicitVRLittleEndian)
+	path := "examples/CT-MONO2-16-ort.dcm"
+	testWriteFile(t, path, dicomuid.ImplicitVRLittleEndian)
+	testWriteFile(t, path, dicomuid.ExplicitVRBigEndian)
+	testWriteFile(t, path, dicomuid.ExplicitVRLittleEndian)
+
+	path = "examples/OF_DICOM.dcm"
+	testWriteFile(t, path, dicomuid.ImplicitVRLittleEndian)
+	testWriteFile(t, path, dicomuid.ExplicitVRBigEndian)
+	testWriteFile(t, path, dicomuid.ExplicitVRLittleEndian)
 }
 
 func TestReadDataSet(t *testing.T) {
@@ -94,7 +119,7 @@ func TestReadDataSet(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, elem.MustGetString(), "1.2.840.10008.1.2.4.91")
 	assert.Equal(t, len(data.Elements), 98)
-	elem, err = data.FindElementByTag(dicomtag.PixelData)
+	_, err = data.FindElementByTag(dicomtag.PixelData)
 	assert.NoError(t, err)
 }
 
@@ -160,6 +185,9 @@ func Example_updateExistingFile() {
 		panic(err)
 	}
 	patientID, err := ds.FindElementByTag(dicomtag.PatientID)
+	if err != nil {
+		panic(err)
+	}
 	patientID.Value = []interface{}{"John Doe"}
 
 	buf := bytes.Buffer{}

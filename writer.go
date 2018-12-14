@@ -267,6 +267,8 @@ func WriteElement(e *dicomio.Encoder, elem *Element) {
 				sube.WriteInt16(v)
 			}
 		case "FL":
+			fallthrough
+		case "OF":
 			for _, value := range elem.Value {
 				v, ok := value.(float32)
 				if !ok {
@@ -277,6 +279,8 @@ func WriteElement(e *dicomio.Encoder, elem *Element) {
 				sube.WriteFloat32(v)
 			}
 		case "FD":
+			fallthrough
+		case "OD":
 			for _, value := range elem.Value {
 				v, ok := value.(float64)
 				if !ok {
@@ -305,7 +309,7 @@ func WriteElement(e *dicomio.Encoder, elem *Element) {
 					break
 				}
 				d := dicomio.NewBytesDecoder(bytes, dicomio.NativeByteOrder, dicomio.UnknownVR)
-				n := int(len(bytes) / 2)
+				n := len(bytes) / 2
 				for i := 0; i < n; i++ {
 					v := d.ReadUInt16()
 					sube.WriteUInt16(v)
@@ -408,7 +412,7 @@ func WriteDataSetToFile(path string, ds *DataSet) error {
 		return err
 	}
 	if err := WriteDataSet(out, ds); err != nil {
-		out.Close()
+		out.Close() // nolint: errcheck
 		return err
 	}
 	return out.Close()
