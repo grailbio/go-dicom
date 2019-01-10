@@ -43,3 +43,5 @@ replace github.com/unidoc/unidoc => ../../unidoc/unidoc
 replace github.com/youtube/vitess => ../../youtube/vitess
 
 replace v.io/x/ref/lib/flags/sitedefaults => ../../../v.io/x/ref/lib/flags/sitedefaults
+
+replace github.com/golang/lint => ../../golang/lint
