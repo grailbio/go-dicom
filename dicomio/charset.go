@@ -3,7 +3,7 @@ package dicomio
 import (
 	"fmt"
 
-	"github.com/grailbio/go-dicom/dicomlog"
+	"github.com/programmingman/go-dicom/dicomlog"
 	"golang.org/x/text/encoding"
 	"golang.org/x/text/encoding/htmlindex"
 )
@@ -68,6 +68,7 @@ var htmlEncodingNames = map[string]string{
 	"ISO 2022 IR 166": "iso-ir-166",
 	"ISO 2022 IR 87":  "iso-2022-jp",
 	"ISO_IR 192":      "utf-8",
+	"GB18030":         "GB18030",
 }
 
 // ParseSpecificCharacterSet converts DICOM character encoding names, such as

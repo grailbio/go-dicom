@@ -5,10 +5,10 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/grailbio/go-dicom"
-	"github.com/grailbio/go-dicom/dicomio"
-	"github.com/grailbio/go-dicom/dicomtag"
-	"github.com/grailbio/go-dicom/dicomuid"
+	"github.com/programmingman/go-dicom"
+	"github.com/programmingman/go-dicom/dicomio"
+	"github.com/programmingman/go-dicom/dicomtag"
+	"github.com/programmingman/go-dicom/dicomuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
