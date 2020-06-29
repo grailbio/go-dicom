@@ -4,7 +4,7 @@ import (
 	"encoding/binary"
 	"fmt"
 
-	"github.com/grailbio/go-dicom/dicomuid"
+	"github.com/programmingman/go-dicom/dicomuid"
 )
 
 // StandardTransferSyntaxes is the list of standard transfer syntaxes.

@@ -3,7 +3,7 @@ https://github.com/dvyukov/go-fuzz and install two packages, go-fuzz-build and g
 Then run:
 
 ```
-go-fuzz-build github.com/grailbio/go-dicom/fuzztest
+go-fuzz-build github.com/programmingman/go-dicom/fuzztest
 mkdir -p /tmp/fuzz/corpus
 cp -r ../examples/* /tmp/fuzz/corpus/
 go-fuzz -bin fuzz-fuzz.zip -workdir /tmp/fuzz

@@ -6,9 +6,9 @@ import (
 	"io"
 	"os"
 
-	"github.com/grailbio/go-dicom/dicomio"
-	"github.com/grailbio/go-dicom/dicomlog"
-	"github.com/grailbio/go-dicom/dicomtag"
+	"github.com/programmingman/go-dicom/dicomio"
+	"github.com/programmingman/go-dicom/dicomlog"
+	"github.com/programmingman/go-dicom/dicomtag"
 )
 
 // WriteFileHeader produces a DICOM file header. metaElems[] is be a list of
