@@ -2,6 +2,8 @@ language: go
 go:
   - 1.14.x
   - 1.15.x
+before_install:
+  - git lfs pull
 script:
   - go test -v ./...
   - go build ./...
