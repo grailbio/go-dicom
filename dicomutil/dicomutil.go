@@ -23,7 +23,7 @@ func main() {
 	path := flag.Arg(0)
 	data, err := dicom.ReadDataSetFromFile(path, dicom.ReadOptions{DropPixelData: !*extractImages})
 	if data == nil {
-		log.Panic("Error reading %s: %v", path, err)
+		log.Panicf("Error reading %s: %v", path, err)
 	}
 	log.Printf("Error reading %s: %v", path, err)
 	if *printMetadata {
